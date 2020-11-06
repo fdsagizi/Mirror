@@ -15,7 +15,7 @@ namespace Telepathy
 
         // class with all the client's data. let's call it Token for consistency
         // with the async socket methods.
-        class ClientToken
+        public class ClientToken
         {
             public TcpClient client;
 
@@ -28,6 +28,31 @@ namespace Telepathy
             // -> call Reset() if there is something to send again
             // -> call WaitOne() to block until Reset was called
             public ManualResetEvent sendPending = new ManualResetEvent(false);
+
+            public bool isInited;
+            
+            public bool isInitOk;
+
+            public float lastTimeReceiveMsg;
+
+            private IPEndPoint lastFiltredAddress_Result;
+            private IPEndPoint lastFiltredAddress;
+            
+            public IPEndPoint GetAddress(){
+                return ((IPEndPoint) client.Client.RemoteEndPoint);
+            }
+            
+            public IPEndPoint GetAddress_FiltredV6(){
+                var ret = ((IPEndPoint) client.Client.RemoteEndPoint);
+                if (!ret.Address.IsIPv4MappedToIPv6)
+                    return ret;
+                var last = lastFiltredAddress;
+                if (last != null && ret.Port == last.Port && ret.Address.Equals(last.Address))
+                    return lastFiltredAddress_Result;
+                lastFiltredAddress = ret;
+                lastFiltredAddress_Result = new IPEndPoint(ret.Address.MapToIPv4(), ret.Port);
+                return lastFiltredAddress_Result;
+            }
 
             public ClientToken(TcpClient client)
             {
@@ -226,7 +251,7 @@ namespace Telepathy
                 TcpClient client = kvp.Value.client;
                 // close the stream if not closed yet. it may have been closed
                 // by a disconnect already, so use try/catch
-                try { client.GetStream().Close(); } catch { }
+                try { client.GetStream().Close(); } catch {}
                 client.Close();
             }
 
@@ -252,8 +277,7 @@ namespace Telepathy
                     // calling Send here would be blocking (sometimes for long times
                     // if other side lags or wire was disconnected)
                     token.sendQueue.Enqueue(data);
-                    // interrupt SendThread WaitOne()
-                    token.sendPending.Set();
+                    token.sendPending.Set(); // interrupt SendThread WaitOne()
                     return true;
                 }
                 // sending to an invalid connectionId is expected sometimes.
@@ -293,6 +317,14 @@ namespace Telepathy
                 return true;
             }
             return false;
+        }
+
+        public int GetClientCount(){
+            return clients.Count;
+        }
+
+        public ClientToken GetClient(int msgConnectionId){
+            return clients.TryGetValue(msgConnectionId, out var ret) ? ret : null;
         }
     }
 }

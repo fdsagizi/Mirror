@@ -746,7 +746,7 @@ namespace Mirror
             }
         }
 
-        bool clientStarted;
+        public bool clientStarted;
         internal void OnStartClient()
         {
             if (clientStarted)
