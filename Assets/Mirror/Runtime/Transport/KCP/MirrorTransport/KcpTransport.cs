@@ -2,8 +2,8 @@
 using System;
 using System.Linq;
 using System.Net;
-using Mirror;
 using UnityEngine;
+using Mirror;
 
 namespace kcp2k
 {
@@ -119,8 +119,8 @@ namespace kcp2k
         // common
         public override void Shutdown() {}
 
-        // MTU
-        public override int GetMaxPacketSize(int channelId = Channels.DefaultReliable) => Kcp.MTU_DEF;
+        // max message size
+        public override int GetMaxPacketSize(int channelId = Channels.DefaultReliable) => KcpConnection.MaxMessageSize;
 
         public override string ToString()
         {
